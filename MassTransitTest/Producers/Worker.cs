@@ -32,7 +32,7 @@ public class Worker : BackgroundService
             }
             catch (Exception ex)
             {
-
+                var message = ex.Message;
             }
             finally
             {
