@@ -1,5 +1,6 @@
 using MassTransit;
 using Models;
+using System.Text.Json;
 using System.Threading;
 
 namespace Producers;
@@ -19,6 +20,7 @@ public class Worker : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            await Task.Delay(1000, stoppingToken);
             _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
 
             var scope = _serviceProvider.CreateScope();
@@ -29,6 +31,8 @@ public class Worker : BackgroundService
                 var orderId = Guid.NewGuid().ToString();
                 var response = await client.GetResponse<OrderStatusResult>(new { orderId });
 
+                var responseStr = JsonSerializer.Serialize(response);
+                _logger.LogInformation(responseStr);
             }
             catch (Exception ex)
             {
@@ -37,10 +41,7 @@ public class Worker : BackgroundService
             finally
             {
                 scope.Dispose();
-            }
-
-
-            await Task.Delay(1000, stoppingToken);
+            }            
         }
     }
 }

@@ -1,6 +1,8 @@
 using MassTransit;
 using Microsoft.Extensions.Options;
 using Models;
+using Serilog;
+using Serilog.Events;
 
 namespace Producers;
 
@@ -16,11 +18,13 @@ public class Program
                     sp.GetRequiredService<IOptions<MassTransitConfiguration>>().Value);
 
                 services.AddMassTransit(x =>
-                {                   
+                {
                     x.SetKebabCaseEndpointNameFormatter();
 
                     x.UsingRabbitMq((context, cfg) =>
                     {
+                        cfg.AutoStart = true;
+
                         MassTransitConfiguration settings = context.GetRequiredService<MassTransitConfiguration>();
 
                         cfg.Host(new Uri(settings.RabbitMqHost), h =>
@@ -28,10 +32,20 @@ public class Program
                             h.Username(settings.RabbitUser);
                             h.Password(settings.RabbitPass);
                         });
+
+                        cfg.ConfigureEndpoints(context);
                     });
                 });
 
                 services.AddHostedService<Worker>();
+            })
+            .UseSerilog((host, log) =>
+            {
+                log.MinimumLevel.Debug();
+                log.MinimumLevel.Override("Microsoft", LogEventLevel.Warning);
+                log.MinimumLevel.Override("Quartz", LogEventLevel.Information);
+                log.WriteTo.Console();
+
             })
             .Build();
 
